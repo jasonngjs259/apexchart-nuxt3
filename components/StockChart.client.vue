@@ -48,6 +48,7 @@
     <div id="loading-indicator" v-show="isLoading" class="loading">
       Loading...
     </div>
+    <apexchart></apexchart>
     <div id="chart"></div>
   </div>
 </template>
@@ -368,7 +369,28 @@ export default {
     updateChart(newData) {
       this.allData = newData;
       if (!this.stockChart) return;
-      this.stockChart.update({ series: [{ data: newData }] });
+      const volumeData = [];
+
+      for (const item of this.allData) {
+        let color;
+        if (item.y[3] - item.y[0] < 0) {
+          color = "#FF5A53";
+        } else {
+          color = "#00E396";
+        }
+        volumeData.push({
+          x: item.x,
+          y: item.v,
+          fillColor: color,
+        });
+      }
+
+      this.stockChart.update({
+        series: [
+          { name: "CandleStick", type: "candlestick", data: this.allData },
+          { name: "Bar", type: "column", data: volumeData },
+        ],
+      });
     },
     handlePeriodChange(period) {
       this.currentPeriod = period;
@@ -428,15 +450,57 @@ export default {
       this.currentInterval
     );
 
+    const volumeData = [];
+
+    for (const item of this.allData) {
+      let color;
+      if (item.y[3] - item.y[0] < 0) {
+        color = "#FF5A53";
+      } else {
+        color = "#00E396";
+      }
+      volumeData.push({
+        x: item.x,
+        y: item.v,
+        fillColor: color,
+      });
+    }
+
     const chartOptions = {
-      chart: { height: 400 },
-      series: [{ data: this.allData }],
+      chart: { id: "chart", height: 400 },
+      series: [
+        { name: "CandleStick", type: "candlestick", data: this.allData },
+        {
+          name: "Bar",
+          type: "bar",
+          data: volumeData,
+        },
+      ],
       xaxis: { type: "category" },
-      yaxis: { tooltip: { enabled: true } },
-      theme: {
-        mode: document.body.classList.contains("dark-mode") ? "dark" : "light",
+      yaxis: [
+        { seriesName: "Candlestick", tooltip: { enabled: true } },
+        {
+          seriesName: "Bar",
+          show: false,
+        },
+      ],
+
+      stroke: { width: [2, 0] },
+
+      theme: { mode: "dark" },
+      // theme: {
+      //   mode: document.body.classList.contains("dark-mode") ? "dark" : "light",
+      // },
+      plotOptions: {
+        stockChart: {
+          indicators: {
+            volumes: { enabled: true },
+          },
+        },
       },
     };
+
+    console.log(this.allData);
 
     this.stockChart = new ApexStock(
       document.querySelector("#chart"),
